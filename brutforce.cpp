@@ -3,6 +3,8 @@ using namespace std;
 #define MAX 500
 #define MAX_SKIP 3
 
+//bruteforce code to generate valid pattern
+
 map<string,int>M;
 map<int,string>M_rev; 
 int cnt;
