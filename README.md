@@ -3,3 +3,4 @@ This repository is created for implementation of suffix tree. And also other app
 
 Here we include. a) Implementation of Suffix Tree
                  b) Generating Periodic Patterns
+                 c) Incremental database case, no needed to generate the whole tree
