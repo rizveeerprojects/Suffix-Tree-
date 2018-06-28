@@ -38,6 +38,13 @@ using namespace std;
        0,5 and 6th position
       */
       vector<int>occurence_vector; 
+      
+      /* 
+       this denotes from which parent this child was created 
+       */
+       SuffixTreeNode *parent_address;
+       /*Number of characters encountered upto this node*/
+       int number_of_characters; 
  };
  
  //text represents our input string 
@@ -107,6 +114,9 @@ using namespace std;
 		  at the end of all phases*/
 		  
 		node->suffixIndex = -1;
+		node->parent_address=NULL; //parent address = NULL 
+		node->number_of_characters = 0; //number of characters upto this node 
+		
 		return node; 
    }
    
@@ -135,6 +145,21 @@ using namespace std;
 	  return 0; 
    }
    
+   
+   //function to update occurence vector upto parent 
+   void updateOccurenceVector(SuffixTreeNode *node,int pos){
+	   //number of characters from root encountered 
+	   int charactersFromRoot = node->parent_address->number_of_characters;
+	   int startOfSuffix = pos-charactersFromRoot;
+	   SuffixTreeNode *temp=node;
+	   while(true){
+			if(temp==root) break;
+			temp->occurence_vector.push_back(startOfSuffix);
+			temp=temp->parent_address;
+	   }
+	   return;
+   }
+   
    void extendSuffixTree(int pos){
 		/*Extension Rule 1, this takes care of extending all
 		  leaves created so far in tree*/	  
@@ -161,9 +186,13 @@ using namespace std;
 			 if(activeNode->child[text[activeEdge]-BASE] == NULL) {
 				 //Extension Rule 2 (A new leaf edge gets created)
 				 activeNode->child[text[activeEdge]-BASE] = newNode(pos,&leafEnd);
+				 //parent update 
+				 activeNode->child[text[activeEdge]-BASE]->parent_address = activeNode;
+				 activeNode->child[text[activeEdge]-BASE]->number_of_characters = activeNode->number_of_characters;
 				 
 				 //occurence vector initiated 
-				 activeNode->child[text[activeEdge]-BASE]->occurence_vector.push_back(pos);
+				 updateOccurenceVector(activeNode->child[text[activeEdge]-BASE],pos); 
+				 //activeNode->child[text[activeEdge]-BASE]->occurence_vector.push_back(pos);
 				 
 				 /*A new leaf edge is created in above line starting
 				   from  an existng node (the current activeNode), and
@@ -218,22 +247,31 @@ using namespace std;
 				    //New internal node
 				    struct SuffixTreeNode * split = newNode(next->start,splitEnd);
 				    activeNode->child[text[activeEdge]-BASE] = split; 
+				    //parent update 
+				    split->parent_address = activeNode;  
+				    split->number_of_characters=activeNode->number_of_characters+activeLength; //every split node is kind of fixed node and they don't change upto them, number of characters 
+						
 						//occurence vector
 						//a) From Next 
 						for(int i=0;i<(int)next->occurence_vector.size();i++){
 							split->occurence_vector.push_back(next->occurence_vector[i]);
 						}
 						//b) From new node 
-						int length = edgeLength(split);
-						split->occurence_vector.push_back(pos-length); 
+						//int length = edgeLength(split);
+						//split->occurence_vector.push_back(pos-length); 
 				        
 				   
 				     //New leaf coming out of new internal node
 				     split->child[text[pos]-BASE] = newNode(pos,&leafEnd);
 						//occurence vector for new created leaf 
-						split->child[text[pos]-BASE]->occurence_vector.push_back(pos-length); 
+						//split->child[text[pos]-BASE]->occurence_vector.push_back(pos-length); 
+						split->child[text[pos]-BASE]->parent_address = split; 
+						updateOccurenceVector(split->child[text[pos]-BASE],pos); //update of occurence vector to root
+						
 				     next->start += activeLength; 
 				     split->child[text[next->start]-BASE] = next; 
+				     next->parent_address = split; 
+				     
 				   
 				     /*We got a new internal node here. If there is any
 					  internal node created in last extensions of same
@@ -307,12 +345,17 @@ using namespace std;
 		return;
    }
    
-   //function to print occurence vector
+    //function to print occurence vector
    void print_occurence_vector(SuffixTreeNode *node){
 		for(int i=0;i<=MAX_CHAR;i++){
 			if(node->child[i] != NULL) {
-				char ch = i;
-				cout<<ch<<endl;
+				cout << "characters ";
+				int st=node->child[i]->start;
+				int en = *(node->child[i]->end);
+				for(int j=st;j<=en;j++){
+					cout<<text[j];
+				}
+				cout<<endl;
 				for(int j=0;j<(int)node->child[i]->occurence_vector.size();j++){
 					cout<<node->child[i]->occurence_vector[j]<<" ";
 				}
@@ -325,7 +368,7 @@ using namespace std;
    
    //function to generate pattern 
    map<char,double>weight;
-   double minimumSupportThreshhold=0;
+   double minimumSupportThreshhold=0.0;
    double maxW=1; 
    int max_skip=3;
    
@@ -522,9 +565,14 @@ using namespace std;
 		} 
 		free(u); 
 	 }
+	 cout<<"patterns " << endl;
 	 cout<<freq.size()<<endl;
 	 for(int i=0;i<(int)freq.size();i++){
 		cout<<freq[i].s<<endl;
+		/*for(int j=0;j<(int)freq[i].occurence_vector.size();j++){
+			cout<<freq[i].occurence_vector[j]<<" ";
+		}
+		cout<<endl;*/
 	 }
    }
    
@@ -545,12 +593,16 @@ using namespace std;
 		//print occurence vector
 		print_occurence_vector(root);
 		//generate pattern
-		for(int i='a';i<='e';i++){
+		/*for(int i='a';i<='e';i++){
 			char ch = i;
 			weight[ch] = 1;
-		}
-		weight['$']=1;
-		generatePattern(root);
+		}*/
+		weight['a']=0.8;
+		weight['b']=0.6;
+		weight['c']=0.7;
+		weight['d']=0.5;
+		weight['$']=0.0001;
+		//generatePattern(root);
 		
 		//clearing memory 
 		clearingMemory(root);
@@ -565,3 +617,4 @@ int main(void){
 	cin>>text;
 	buildSuffixTree();
 }
+
