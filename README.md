@@ -5,3 +5,4 @@ Here we include.
 a) Implementation of Suffix Tree</br>
 b) Generating Periodic Patterns</br>
 c) Incremental database case, no needed to generate the whole tree</br>
+d) Decrement Database</br>
