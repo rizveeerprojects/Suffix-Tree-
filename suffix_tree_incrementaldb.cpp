@@ -37,7 +37,9 @@ using namespace std;
        vector for this edge is {0,5,6} so, "xyz" occures from
        0,5 and 6th position
       */
-      vector<int>occurence_vector; 
+      /* deque is used for pushing in front and to delete from end
+       * */ 
+      deque<int>occurence_vector;
       
       /* 
        this denotes from which parent this child was created 
@@ -45,6 +47,9 @@ using namespace std;
        SuffixTreeNode *parent_address;
        /*Number of characters encountered upto this node*/
        int number_of_characters; 
+       
+       /* node which is carrying suffix link to this node */
+       SuffixTreeNode *reverseSuffixLink;
  };
  
  //text represents our input string 
@@ -132,6 +137,7 @@ using namespace std;
 		node->suffixIndex = -1;
 		node->parent_address=NULL; //parent address = NULL 
 		node->number_of_characters = 0; //number of characters upto this node 
+		node->reverseSuffixLink=root; //reverse suffix link to express which node is connected with node by suffix link
 		
 		return node; 
    }
@@ -251,6 +257,8 @@ using namespace std;
                    
                    if(lastNewNode != NULL) {
 						lastNewNode->suffixLink = activeNode->child[text[activeEdge]-BASE];
+						//reverse suffix link 
+						activeNode->child[text[activeEdge]-BASE]->reverseSuffixLink = lastNewNode; 
 						lastNewNode = NULL;
 				   }
 			 }
@@ -270,6 +278,9 @@ using namespace std;
                      of that waiting node to curent active node */
                      if(lastNewNode != NULL && activeNode != root){
 						lastNewNode->suffixLink = activeNode;
+						//reverse suffix link
+						activeNode->reverseSuffixLink = lastNewNode;
+						
 						lastNewNode = NULL; 
 					 }
 					 
@@ -303,8 +314,7 @@ using namespace std;
 						for(int i=0;i<(int)next->occurence_vector.size();i++){
 							split->occurence_vector.push_back(next->occurence_vector[i]);
 						} 
-				        
-				   
+						
 				     //New leaf coming out of new internal node
 				     split->child[text[pos]-BASE] = newNode(pos,&leafEnd);
 						//occurence vector for new created leaf 
@@ -328,12 +338,6 @@ using namespace std;
 						temp->successor = next;
 						temp->activeEdge=activeEdge;
 						node_to_delete.push_back(temp);
-						cout<<"shit " << endl;
-						for(int i=0;i<temp->split_node->occurence_vector.size();i++){
-							cout<<temp->split_node->occurence_vector[i]<<" ";
-						}
-						cout<<endl;
-						
 					  }
 					  
 				   
@@ -346,6 +350,8 @@ using namespace std;
 							/*suffixLink of lastNewNode points to current newly
 							  created internal node*/
 							lastNewNode->suffixLink = split;
+							//reverse suffix link
+							split->reverseSuffixLink = lastNewNode;
 					  }
 					  
 					  /*Make the current newly created internal node waiting
@@ -690,6 +696,48 @@ using namespace std;
 			free(node_to_delete[i]);
 		}
 	}
+	
+	
+	//function to delete from suffix tree due to deletion 
+	void deletion_from_suffix_tree(int pos){
+		/*pos is being delete from suffix*/
+		SuffixTreeNode *temp = root;
+		vector<SuffixTreeNode *>go_down;
+		vector<int>V;
+		while(true){
+			cout<<"going " << " pos = " << pos << endl;
+			//delete from start
+			temp->child[text[pos]-BASE]->occurence_vector.pop_front();
+			//move through edge
+			int new_pos=pos+edgeLength(temp->child[text[pos]-BASE]);
+			if(temp->child[text[pos]-BASE]->occurence_vector.size() == 0) {
+				/*if occurence vector empty this string doesn't belong any more now the node which
+				  was connected to it must remove its suffix link 
+				 */
+				if(temp->child[text[pos]-BASE]->reverseSuffixLink != NULL) {
+					//if that exists then change
+					temp->child[text[pos]-BASE]->reverseSuffixLink->suffixLink = root;
+				}
+				go_down.push_back(temp->child[text[pos]-BASE]);
+				V.push_back(pos);
+			}
+			else {
+				int length=edgeLength(temp->child[text[pos]-BASE]);
+				temp->child[text[pos]-BASE]->start=temp->child[text[pos]-BASE]->occurence_vector[0];
+				*(temp->child[text[pos]-BASE]->end) = temp->child[text[pos]-BASE]->start+length-1;
+			}
+			if(new_pos>=(int)text.size()) break;
+			temp=temp->child[text[pos]-BASE];
+			pos=new_pos;
+		}
+		for(int i=go_down.size()-1;i>=0;i--){
+			
+			//free(go_down[i]->parent_address->child[text[V[i]]-BASE]);
+			go_down[i]->parent_address->child[text[V[i]]-BASE]=NULL;
+			free(go_down[i]);
+			
+		}
+	}
    
    
    //function to build suffix tree 
@@ -709,6 +757,9 @@ using namespace std;
 		print_occurence_vector(root);
 		//generate pattern
 		
+		/* segment for testing incremental DB */
+		/*****************************************************/
+		/*
 		cout<<"incremental DB example"<<endl;
 		initialize_for_incrementalDB();
 		int sz=text.size();
@@ -724,6 +775,15 @@ using namespace std;
 		//printAllSuffix(root,V);
 		//print occurence vector
 		print_occurence_vector(root);
+		*/
+		
+		/*************************************/
+		deletion_from_suffix_tree(0);
+		deletion_from_suffix_tree(1);
+		cout<<"done"<<endl;
+		
+		print_occurence_vector(root);
+		
 		
 		
 		weight['a']=0.8;
@@ -746,4 +806,5 @@ int main(void){
 	cin>>text;
 	buildSuffixTree();
 }
+
 
