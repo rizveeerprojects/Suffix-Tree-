@@ -93,6 +93,11 @@ using namespace std;
 	 SuffixTreeNode *split_node;
 	 SuffixTreeNode *successor;   
 	 int activeEdge;
+	 int condition; //this says about the type of successor while included
+	 /* 
+	  * 1) successor is null, not split node case 
+	  * 2) successor is present 
+	  * */
    };
    vector<Incremental_DB*>node_to_delete; //this nodes need to be deleted for incremental db
    
@@ -243,6 +248,7 @@ using namespace std;
 					temp_here->split_node= activeNode->child[text[activeEdge]-BASE];
 					temp_here->successor = NULL;
 					temp_here->activeEdge = activeEdge;
+					temp_here->condition = 1; //not split node case 
 					node_to_delete.push_back(temp_here);
 				 }
 				
@@ -337,6 +343,7 @@ using namespace std;
 						temp->split_node = split;
 						temp->successor = next;
 						temp->activeEdge=activeEdge;
+						temp->condition = 2;
 						node_to_delete.push_back(temp);
 					  }
 					  
@@ -669,12 +676,13 @@ using namespace std;
 			}
 			cout<<endl;
 			getchar();
-			if(temp->successor == NULL) {
+			if(temp->condition == 1) { //not split node case 
 				cout<<"asi "<<endl;
 				if(temp->split_node == NULL) continue; //deleted due to decrement feature
 				if(temp->split_node->parent_address == NULL) continue; //parent doesn't exist
 				
 				temp->split_node->parent_address->child['$'] = NULL; //thsere will be no edge for $ from root
+				
 				cout<<"ei porjonto " << endl;
 				getchar();
 				
@@ -706,24 +714,28 @@ using namespace std;
 			}
 			else {
 				//split node case
+				SuffixTreeNode *traverse;
 				if(temp->split_node == NULL) {
 						continue; //this space is null
 				}
 				if(temp->successor == NULL){
-					//need to merge parent and split node
-					*(temp->split_node->parent_address->end) = *(temp->split_node->end);
-					temp->split_node->parent_address->child[text[temp->activeEdge]-BASE]=NULL;
+					//nothing to merge with parent
+					//A separate entity from parent
+					traverse = temp->split_node;
 				}
 				
 				if(temp->successor != NULL) {
+					//need to merge parent and split node
 					temp->successor->start=temp->split_node->start; //start updated 
 					temp->successor->parent_address=temp->split_node->parent_address; //parent address update
 					temp->split_node->parent_address->child[text[temp->activeEdge]-BASE] = temp->successor; //link created 
+					//split node merged, delete from parent
+					traverse = temp->split_node->parent_address;
 				}
 				
 				
 				//now erasing the last index which was inserted due to $
-				SuffixTreeNode *traverse = temp->split_node->parent_address;
+				//previous checking: SuffixTreeNode *traverse = temp->split_node->parent_address;
 				while(true){
 					if(traverse==root) break;
 					if(traverse == NULL) break;
@@ -744,7 +756,7 @@ using namespace std;
 				
 			}
 		}
-		cout<<"hoiche " << endl;
+		//debug: cout<<"hoiche " << endl;
 		//initialize the global variables 
 		activeNode = incremental_activeNode;
 		activeLength = incremental_activeLength;
