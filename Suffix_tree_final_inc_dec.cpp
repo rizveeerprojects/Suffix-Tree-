@@ -777,6 +777,41 @@ void printAllSuffix(SuffixTreeNode *node,vector<char>V){
 			}
 		}
 	}
+	
+	void clear_occurence_vector(SuffixTreeNode *node){
+		if(node == NULL) return;
+		for(int i=0;i<MAX_CHAR;i++){
+			if(node->child[i] != NULL) {
+				clear_occurence_vector(node->child[i]);
+			}
+		}
+		node->occurence_vector.clear();
+		return;
+	}
+	
+	deque<int> make_occurence_vector(SuffixTreeNode *node, int depth){
+		
+	
+		bool move = false;
+		for(int i=0;i<MAX_CHAR;i++){
+			if(node->child[i] != NULL) {
+				move=true;
+				deque<int>temp;
+				temp = make_occurence_vector(node->child[i],depth+edgeLength(node->child[i]));
+				for(int j=0;j<(int)temp.size();j++){
+					node->occurence_vector.push_back(temp[j]);
+				}
+			}
+		}
+		sort(node->occurence_vector.begin(),node->occurence_vector.end());
+		if(move) return node->occurence_vector;
+		else {
+			node->occurence_vector.push_back(text.size()-(depth)+edgeLength(node));
+			sort(node->occurence_vector.begin(),node->occurence_vector.end());
+			return node->occurence_vector;
+		}
+	}
+	
    
 
 
@@ -805,14 +840,15 @@ int main(){
 	decrement_tree(0);
 	decrement_tree(1);
 	decrement_tree(2);
+	decrement_tree(3);
 	leafEnd--;
 	increment_tree();
-	int got = find_largest_unmatched_string(3,text.size()-2);
+	int got = find_largest_unmatched_string(4,text.size()-2);
 	cout<<"got = " << got<<endl;
 	initialize_for_new_insertion(got);
 	int length = text.size()-1;
 	text[length] = 'b';
-	text=text+"xym"+'$';
+	text=text+"a"+'$';
 	for(int i=length;i<(int)text.size();i++){
 		cout<<text[i]<<endl;
 		extendSuffixTree(i);
