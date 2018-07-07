@@ -790,8 +790,6 @@ void printAllSuffix(SuffixTreeNode *node,vector<char>V){
 	}
 	
 	deque<int> make_occurence_vector(SuffixTreeNode *node, int depth){
-		
-	
 		bool move = false;
 		for(int i=0;i<MAX_CHAR;i++){
 			if(node->child[i] != NULL) {
@@ -806,10 +804,29 @@ void printAllSuffix(SuffixTreeNode *node,vector<char>V){
 		sort(node->occurence_vector.begin(),node->occurence_vector.end());
 		if(move) return node->occurence_vector;
 		else {
-			node->occurence_vector.push_back(text.size()-(depth)+edgeLength(node));
+			node->occurence_vector.push_back(text.size()-depth);
 			sort(node->occurence_vector.begin(),node->occurence_vector.end());
 			return node->occurence_vector;
 		}
+	}
+	
+	void print_occurence_vector(SuffixTreeNode *node){
+		
+		for(int i=0;i<MAX_CHAR;i++){
+			if(node->child[i] != NULL) {
+				string s="";
+				for(int j=node->child[i]->start;j<=*(node->child[i]->end);j++){
+					s=s+text[j];
+				}
+				cout<<s<<endl;
+				for(int j=0;j<(int)node->child[i]->occurence_vector.size();j++){
+					cout<<node->child[i]->occurence_vector[j]<<" ";
+				}
+				cout<<endl;
+				print_occurence_vector(node->child[i]);
+			}
+		}
+		return;
 	}
 	
    
@@ -836,7 +853,7 @@ int main(){
 	printAllSuffix(root,V);
 	cout<<"******"<<endl;*/
 	//checking decremental db
-	cout<<"**************"<<endl;
+	/*cout<<"**************"<<endl;
 	decrement_tree(0);
 	decrement_tree(1);
 	decrement_tree(2);
@@ -857,9 +874,15 @@ int main(){
 	vector<char>V;
 	printAllSuffix(root,V);
 	decrement_tree(1);*/
+	cout<<"***********"<<endl;
 	cout<<"string "<<text<<endl;
 	vector<char>V;
 	printAllSuffix(root,V);
+	cout<<"checking occurrence vector " << endl;
+	clear_occurence_vector(root);
+	make_occurence_vector(root,0);
+	print_occurence_vector(root); 
+	return 0;
 	
 }
  
