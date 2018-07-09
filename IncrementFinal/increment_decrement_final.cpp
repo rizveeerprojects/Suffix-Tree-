@@ -100,6 +100,7 @@ struct SuffixTreeNode{
 	  * */
    };
    
+   int leafHarai; //to represent how may leafs are lost without '$'
    
    /*File controller*/
    FILE *fp;
@@ -355,8 +356,11 @@ struct SuffixTreeNode{
 }
 
 
+
 void increment_tree(){
 	
+	//initialize 
+	leafHarai = 0;
 	for(int i=node_to_delete.size()-1;i>=0;i--){
 		
 		//debug: cout<<"i = " << i <<" "<< node_to_delete[i]->split_node->start<<" "<<node_to_delete[i]->condition<<endl;
@@ -368,6 +372,9 @@ void increment_tree(){
 			//direct edge connected 
 			if(temp->split_node == NULL) continue; //not valid 
 			if(temp->split_node->parent_address == NULL) continue; //not valid 
+			
+			leafHarai++; //logically one leaf gets lost
+			
 			//basically direct '$' connection
 			temp->split_node->parent_address->child[text[activeEdge]-BASE] = NULL; //edge deleted
 			int cnt=0;
@@ -395,6 +402,9 @@ void increment_tree(){
 						temp->split_node->parent_address->reverseSuffixLink->suffixLink = root;
 					}
 					temp->split_node->parent_address->suffixLink = root;  //this is already a leaf Node
+					
+					//a leaf Node created 
+					leafHarai--;
 				}
 			}
 			else if(cnt == 1) {
@@ -408,7 +418,7 @@ void increment_tree(){
 					//edge correction
 					temp->split_node->parent_address->parent_address->child[text[ch]-BASE] = temp->split_node->parent_address->child[save];
 					//parent correction ? ? 
-					temp->split_node->parent_address->child[save]->parent_address = temp->split_node->parent_address->parent_address->child[text[ch]-BASE];
+					temp->split_node->parent_address->child[save]->parent_address = temp->split_node->parent_address->parent_address;
 					//start correction
 					temp->split_node->parent_address->child[save]->start =  *(temp->split_node->parent_address->child[save]->end) - (length1+length2)+1;
 					
@@ -432,6 +442,8 @@ void increment_tree(){
 			//condition 2
 			//split nodes 
 			if(temp->split_node == NULL || temp->split_node->parent_address == NULL) continue; //invalid node 
+			leafHarai++;
+			
 			if(temp->successor->parent_address == NULL) {
 				//debug: cout<<"succesor nai "<<endl;
 				//successor edge is deleted 
@@ -463,6 +475,7 @@ void increment_tree(){
 							temp->split_node->reverseSuffixLink->suffixLink=root; 
 						}
 						temp->split_node->suffixLink = root; //its now a leaf node  
+						leafHarai--; 
 					}
 				}
 				else if(cnt == 1) {
@@ -495,7 +508,7 @@ void increment_tree(){
 				
 			}
 			//everythings normal
-			if(temp->successor->parent_address != NULL) {
+			else if(temp->successor->parent_address != NULL) {
 				//debug: cout<<"succesor ache "<<endl;
 				if(temp->split_node != root) {
 					int length1 = edgeLength(temp->split_node);
@@ -511,7 +524,9 @@ void increment_tree(){
 				    //suffix Link correction
 				    if(temp->split_node->reverseSuffixLink != NULL) {
 						temp->split_node->reverseSuffixLink->suffixLink=root; 
-					}	
+					}
+					//node delete
+					temp->split_node->parent_address=NULL;	
 				}
 			}
 		}
@@ -602,6 +617,7 @@ void printAllSuffix(SuffixTreeNode *node,vector<char>V){
 		
 		int len = edgeLength(temp);
 		if(len == 1 && text[temp->start - BASE] == '$') {
+			//$ edge
 			if(temp->parent_address == root) {
 				//should handle 
 				//just '$' suffix 
@@ -704,11 +720,13 @@ void printAllSuffix(SuffixTreeNode *node,vector<char>V){
 						ok=true;
 					}
 					else {
+						//mismatch in edge
 						ok=false;
 						return 0;
 					} 
 				}
 				else {
+					//edge didn't finish but string finished
 					ok=false;
 					return 0;
 				}
@@ -724,6 +742,7 @@ void printAllSuffix(SuffixTreeNode *node,vector<char>V){
 				}
 			}
 		}
+		return 0;
 	}
 	
 	
@@ -749,7 +768,7 @@ void printAllSuffix(SuffixTreeNode *node,vector<char>V){
 		if(found) {
 			return save;
 		}
-		return -1;
+		return -1; //all exists 
 	}
 
 	void initialize_for_new_insertion(int got){
@@ -771,9 +790,10 @@ void printAllSuffix(SuffixTreeNode *node,vector<char>V){
 				activeEdge = pos;
 				int fix=pos;
 				bool ok=false;
-				cout<<temp->child[text[fix]-BASE]->start<<endl;
+				if(temp->child[text[fix]-BASE] == NULL) return;
+				//cout<<temp->child[text[fix]-BASE]->start<<endl;
 				for(int i=temp->child[text[fix]-BASE]->start;i<=*(temp->child[text[fix]-BASE]->end);i++){
-					cout<<text[i]<<endl;
+					//cout<<text[i]<<endl;
 					if(pos<=((int)text.size()-2) && text[i] == text[pos]) {
 						pos++;
 						activeLength++;
@@ -889,6 +909,8 @@ void printAllSuffix(SuffixTreeNode *node,vector<char>V){
 		temp=temp+'$';
 		
 		increment_tree(); //function to delete '$' and extra nodes created for this
+		leafHarai--;
+		
 		length=text.size();
 		//modify text
 		text[length-1]=temp[0]; //'$' replaced
@@ -932,7 +954,8 @@ void printAllSuffix(SuffixTreeNode *node,vector<char>V){
 		buildSuffixTree();
 		
 		int length=text.size()-1;
-		int pos =rand()%length;
+		int pos=7;
+		//int pos =rand()%length;
 		cout<<pos<<endl;
 		
 		//deleting
@@ -941,6 +964,9 @@ void printAllSuffix(SuffixTreeNode *node,vector<char>V){
 		}
 		leafEnd--; //leafEnd will decrease by one
 		increment_tree();//modifying by removing '$'
+		leafHarai--; // becase $ node not mandatory
+		
+		cout<<"leafHarai = " << leafHarai << endl;
 		
 		//for testing purpose
 		
@@ -979,8 +1005,10 @@ void printAllSuffix(SuffixTreeNode *node,vector<char>V){
 		buildSuffixTree();
 		
 		int length=text.size()-1;
-		int pos=19;
+		int pos=0;
 		pos =rand()%length;
+		/*************/
+		//pos=3;
 		cout<<"pos = " << pos<<endl;
 		//deleting
 		for(int i=0;i<=pos;i++){
@@ -988,10 +1016,16 @@ void printAllSuffix(SuffixTreeNode *node,vector<char>V){
 		}
 		leafEnd--; //leafEnd will decrease by one
 		increment_tree();//modifying by removing '$'
+		leafHarai--; 
 		
 		int got=find_largest_unmatched_string(pos+1,text.size()-2);
-		initialize_for_new_insertion(got);
-		cout<<"got = " << got << endl;
+		int sp = text.size()-2 - leafHarai + 1;
+		if(leafHarai == 0) sp= -1;
+		cout<<"got = " << got<<" "<<leafHarai<<" "<<sp<<endl;
+		/**************/
+		//got=sp;
+		initialize_for_new_insertion(sp);
+		remainingSuffixCount = leafHarai;
 
 		int choose = rand()%30+1;
 		string temp="";
@@ -1003,6 +1037,8 @@ void printAllSuffix(SuffixTreeNode *node,vector<char>V){
 		cout<<"text = "<<text<<endl;
 		cout<<"temp = "<<temp<<endl;
 		temp=temp+'$';
+		
+		
 		int save=text.size()-1; //where to start from
 		text[text.size()-1]=temp[0];
 		for(int i=1;i<(int)temp.size();i++){
